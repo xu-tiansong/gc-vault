@@ -1,0 +1,27 @@
+/* 隐私政策 / 服务条款页面的样式。单独成文件：网站的 CSP 不允许页面内联 <style>。 */
+:root { color-scheme: light; }
+* { box-sizing: border-box; }
+body { margin: 0; background: #f5f5f7; color: #1d1d1f; font: 15px/1.6 system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; -webkit-font-smoothing: antialiased; }
+main { max-width: 760px; margin: 0 auto; padding: 24px 20px 64px; background: #fff; min-height: 100vh; }
+@media (min-width: 800px) { main { margin: 24px auto; border-radius: 18px; border: 1px solid rgba(0, 0, 0, 0.06); min-height: 0; padding: 32px 36px 48px; } }
+h1 { font-size: 26px; line-height: 1.2; margin: 0 0 4px; }
+h2 { font-size: 18px; margin: 28px 0 8px; }
+p, li { margin: 6px 0; }
+ul { padding-left: 22px; }
+a { color: #0066cc; }
+.meta { color: #7a7a7a; font-size: 13px; margin-bottom: 18px; }
+.lang-nav { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0 20px; font-size: 14px; }
+.lang-nav a { padding: 4px 12px; border-radius: 9999px; background: #e8e8ed; color: #1d1d1f; text-decoration: none; }
+section.lang { margin-top: 8px; padding-top: 8px; }
+section.lang + section.lang { border-top: 1px solid #e0e0e0; margin-top: 36px; padding-top: 24px; }
+code { background: #f5f5f7; border-radius: 6px; padding: 1px 6px; font-size: 13px; word-break: break-all; }
+footer { margin-top: 36px; font-size: 13px; color: #7a7a7a; }
+
+/* 中英文切换：页面语言（<html lang>）决定显示哪一种；默认英文。按钮样式与应用设置窗口里的一致 */
+html[lang="en"] [lang="zh-CN"] { display: none; }
+html[lang="zh-CN"] [lang="en"] { display: none; }
+.topbar { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+.lang-switch { display: inline-flex; padding: 2px; border-radius: 9999px; background: #e8e8ed; }
+.lang-switch button { border: none; background: transparent; color: #1d1d1f; font: inherit; font-size: 12px; line-height: 1; padding: 5px 11px; border-radius: 9999px; cursor: pointer; white-space: nowrap; transition: background 0.2s, transform 0.15s; }
+.lang-switch button:active { transform: scale(0.95); }
+.lang-switch button[aria-pressed="true"] { background: #fff; font-weight: 600; }

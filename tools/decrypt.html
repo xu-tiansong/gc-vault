@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GC 独立解密 / Standalone Decrypt</title>
+<style>
+    :root { --primary: #0066cc; --ink: #1d1d1f; --muted: #7a7a7a; --bg: #f5f5f7; --line: #d2d2d7; --bad: #d70015; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 16px; background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
+    main { max-width: 680px; margin: 0 auto; }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    p.sub { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
+    label { display: block; margin: 12px 0 6px; font-size: 13px; font-weight: 600; }
+    textarea, input { width: 100%; padding: 8px 12px; border: 1px solid var(--line); border-radius: 11px; font-size: 16px; background: #fff; color: var(--ink); }
+    textarea { min-height: 110px; font: 13px/1.4 ui-monospace, Menlo, Consolas, monospace; word-break: break-all; }
+    button { border: 0; border-radius: 9999px; padding: 10px 22px; background: var(--primary); color: #fff; font-size: 16px; cursor: pointer; margin-top: 14px; }
+    button:disabled { opacity: 0.4; }
+    #out > div { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 10px 14px; margin-top: 10px; white-space: pre-wrap; word-break: break-all; }
+    #out .bad { color: var(--bad); }
+    #out small { display: block; color: var(--muted); font-size: 11px; margin-bottom: 4px; }
+    details { margin-top: 22px; font-size: 13px; color: var(--muted); }
+    details pre { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; white-space: pre-wrap; color: var(--ink); font-size: 12px; }
+</style>
+</head>
+<body>
+<main>
+    <h1>GC 独立解密 / Standalone Decrypt</h1>
+    <p class="sub">只需要"密文字符串 + 密钥"。在浏览器本地运行，不联网，不依赖任何库。每行一个以 <code>zt3.</code> 开头的字符串。</p>
+
+    <label for="tokens">密文 / Token(s)</label>
+    <textarea id="tokens" spellcheck="false" autocomplete="off" placeholder="zt3.600000.…"></textarea>
+    <label for="pw">密钥 / Password</label>
+    <input type="password" id="pw" autocomplete="off" spellcheck="false">
+    <button id="go" type="button">解密 / Decrypt</button>
+    <div id="out"></div>
+
+    <details>
+        <summary>算法说明 / Algorithm（即使这个页面丢了，也能据此自己实现）</summary>
+        <pre>密文字符串:  zt3.&lt;iterations&gt;.&lt;salt&gt;.&lt;iv&gt;.&lt;ciphertext&gt;
+  salt (16 字节)、iv (12 字节)、ciphertext 均为 base64url（RFC 4648 §5，无 "=" 填充）
+  ciphertext 的最后 16 字节是 AES-GCM 的认证 tag
+
+1. 密码先做 Unicode NFC 规范化，再取 UTF-8 字节
+2. key = PBKDF2-HMAC-SHA256(password, salt, iterations, 32 字节)
+3. 明文 = AES-256-GCM 解密(key, iv, ciphertext+tag)，无附加数据 (AAD)，明文按 UTF-8 解码
+
+Python 参考实现: tools/decrypt.py</pre>
+    </details>
+</main>
+<script>
+'use strict';
+// ---- 核心（纯函数，无 DOM 依赖，可在 Node 里被测试加载）----
+const MIN_IT = 1000, MAX_IT = 5000000;
+
+function b64urlToBytes(s) {
+    if (!/^[A-Za-z0-9_-]*$/.test(s) || s.length % 4 === 1) return null;
+    const bin = atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4));
+    return Uint8Array.from(bin, ch => ch.charCodeAt(0));
+}
+
+function parseToken(token) {
+    const p = token.trim().split('.');
+    if (p.length !== 5 || p[0] !== 'zt3' || !/^\d{1,9}$/.test(p[1])) throw new Error('不是有效的 zt3 密文字符串');
+    const iterations = Number(p[1]);
+    if (iterations < MIN_IT || iterations > MAX_IT) throw new Error('迭代次数超出允许范围');
+    const salt = b64urlToBytes(p[2]), iv = b64urlToBytes(p[3]), ct = b64urlToBytes(p[4]);
+    if (!salt || salt.length !== 16 || !iv || iv.length !== 12 || !ct || ct.length < 16) throw new Error('密文字符串格式错误');
+    return { iterations, salt, iv, ct };
+}
+
+async function decryptToken(token, password) {
+    const t = parseToken(token);
+    const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(password.normalize('NFC')), 'PBKDF2', false, ['deriveKey']);
+    const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: t.salt, iterations: t.iterations, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+    let plain;
+    try { plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: t.iv }, key, t.ct); }
+    catch { throw new Error('解密失败：密钥错误，或密文已损坏'); }
+    return new TextDecoder('utf-8', { fatal: true }).decode(plain);
+}
+
+const API = { decryptToken, parseToken };
+
+// ---- 界面 ----
+if (typeof document !== 'undefined') {
+    const $ = id => document.getElementById(id);
+    const add = (label, text, bad) => {
+        const d = document.createElement('div'); if (bad) d.className = 'bad';
+        const s = document.createElement('small'); s.textContent = label;
+        d.append(s, document.createTextNode(text)); $('out').append(d);
+    };
+    $('go').addEventListener('click', async () => {
+        const lines = $('tokens').value.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+        $('out').textContent = '';
+        if (!lines.length || !$('pw').value) { add('提示', '请输入密文和密钥', true); return; }
+        $('go').disabled = true;
+        try {
+            for (const [i, line] of lines.entries()) {
+                try { add(`#${i + 1}`, await decryptToken(line, $('pw').value)); }
+                catch (e) { add(`#${i + 1}`, e.message, true); }
+            }
+        } finally { $('go').disabled = false; }
+    });
+}
+</script>
+</body>
+</html>

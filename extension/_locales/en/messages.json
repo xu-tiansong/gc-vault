@@ -1,0 +1,14 @@
+{
+  "extDesc": {
+    "message": "Save the value you just typed on any page into your GC VAULT."
+  },
+  "cmdDesc": {
+    "message": "Save the focused field to GC VAULT"
+  },
+  "actionTitle": {
+    "message": "Save to GC VAULT"
+  },
+  "menuSave": {
+    "message": "Save to GC VAULT"
+  }
+}

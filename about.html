@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>关于 / About — GC VAULT</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="/legal.css">
+</head>
+<body>
+<main>
+  <div class="topbar"><div class="lang-switch" id="langSwitch" role="group" aria-label="Language / 语言"><button type="button" data-lang="en">EN</button><button type="button" data-lang="zh">中文</button></div></div>
+  <h1><span lang="zh-CN">关于 GC VAULT</span><span lang="en">About GC VAULT</span></h1>
+  <div class="meta"><span lang="zh-CN">最后更新：</span><span lang="en">Last updated:</span> 2026-10-20 · <a href="/">https://vault.xuts.net/</a></div>
+  <nav class="lang-nav"><a href="/privacy.html"><span lang="zh-CN">隐私政策</span><span lang="en">Privacy Policy</span></a><a href="/terms.html"><span lang="zh-CN">服务条款</span><span lang="en">Terms of Service</span></a></nav>
+
+  <section class="lang" id="zh" lang="zh-CN">
+    <h2>第一部分　应用介绍</h2>
+
+    <h2>GC 是什么意思</h2>
+    <p><strong>GC = Guardian &amp; Crypto</strong>：<strong>Guardian（守护者）</strong>守住你的私密信息，<strong>Crypto（加密）</strong>是守护的方式。GC VAULT 是一个个人使用的加密保险箱网页应用，用来保存一组"名称 / 值"，比如账号、口令、恢复码、卡号、许可证密钥。</p>
+
+    <h2>它的几个特点</h2>
+    <ul>
+      <li><strong>加密在你自己的浏览器里完成。</strong>你的主密钥和保险箱里的明文内容从不离开浏览器，不会发送给任何服务器。</li>
+      <li><strong>数据存放在你自己手里。</strong>保险箱是一个 <code>.xgcv</code> 文件，可以存在你的电脑、手机，也可以存在你自己的 Google Drive。本应用不保存你的任何文件。</li>
+      <li><strong>只靠一个主密钥。</strong>整个文件用同一把主密钥。没有账号、没有注册、没有找回密码——也没有后门。</li>
+      <li><strong>名称和标签是明文，值是密文。</strong>这样才能在不输入密钥的情况下按名称、标签查找；值（以及你选择加密的备注）则逐条加密。</li>
+      <li><strong>可以脱离本应用还原。</strong>任何一条值的密文，加上主密钥，都可以用独立的小工具（<code>/tools/decrypt.html</code> 或 <code>decrypt.py</code>）解开，不依赖这个网站是否还在。</li>
+      <li><strong>没有统计、没有广告、没有第三方脚本。</strong>页面只加载本站自己的文件，字体也随站点一起提供。</li>
+      <li><strong>可以安装成应用。</strong>在手机或电脑上"添加到主屏幕 / 安装"，之后断网也能打开。</li>
+      <li><strong>浏览器扩展（Chrome / Edge，电脑版）：</strong>在任何网页的输入框里输入了账号、密码、恢复码，按一个快捷键（<code>Alt+Shift+V</code>）就能存进保险箱，不用复制粘贴。见第二部分第 8 节。</li>
+    </ul>
+
+    <h2>它用什么加密</h2>
+    <p>浏览器内置的 Web Crypto：用 PBKDF2-SHA256（默认 100 万次迭代）从主密钥派生出密钥，再用 AES-256-GCM 加密每一条值。每个文件使用独立的随机盐值，每条密文有独立的随机数。格式细节见项目文档。</p>
+
+    <h2>它不能做什么</h2>
+    <ul>
+      <li><strong>主密钥丢了，保险箱就打不开，没有任何办法找回。</strong>请把主密钥另外妥善保管。</li>
+      <li>名称、标签和（未勾选"备注加密"时的）备注是明文，请不要把敏感信息写在那里。</li>
+      <li>它不是多人共享工具，也不做自动备份——请定期备份你的 <code>.xgcv</code> 文件。</li>
+    </ul>
+
+    <h2>第二部分　使用说明</h2>
+
+    <h2>1. 开始：打开或新建</h2>
+    <ul>
+      <li>在起始页的大输入框里输入<strong>主密钥</strong>，然后：
+        <ul>
+          <li>点<strong>文件夹图标</strong>：打开已有的保险箱文件。也可以直接把 <code>.xgcv</code> 文件拖到页面上。</li>
+          <li>点<strong>新建图标</strong>：新建一个保险箱。新建时主密钥不能是"弱"密钥。</li>
+        </ul>
+      </li>
+      <li>没输入主密钥就点图标，页面会提示先输入。</li>
+      <li>打开文件时只需要主密钥非空；密钥不对会提示解密失败，不会改动文件。</li>
+      <li>点主界面顶部的 <strong>GC VAULT</strong> 可以回到起始页。如果有未保存的修改，会先走保存流程，保存完成才离开。</li>
+    </ul>
+
+    <h2>2. 主密钥</h2>
+    <ul>
+      <li>整个文件只用一把主密钥。列表里有内容时，密钥框是只读的。</li>
+      <li>强度条显示"弱 / 中 / 强"。新建保险箱不允许使用"弱"密钥。</li>
+      <li><strong>修改主密钥：</strong>文件打开且密钥已验证后，密钥框右侧出现 ✎ 图标。输入旧密钥、新密钥、重复新密钥即可。新密钥不能是弱密钥，也不能与旧密钥相同。修改只在内存里生效，<strong>点"保存"之后才真正写入文件</strong>。</li>
+    </ul>
+
+    <h2>3. 管理条目</h2>
+    <ul>
+      <li><strong>添加</strong>：底部"添加"按钮。每条有名称、值、标签（可选）、备注（可选）。名称不能重复，不区分大小写。</li>
+      <li>每一行有<strong>复制、编辑、删除</strong>三个按钮。值默认以圆点遮挡；打开"显示值"开关可以显示。</li>
+      <li><strong>标签</strong>：格式如 <code>#银行#常用</code>，以 # 或空白分隔，不区分大小写，单个最长 32 个字符。输入 <code>#</code> 加字母时，会提示本文件里已有的标签，按 Tab 补全。点击列表里的标签会把它加入过滤。</li>
+      <li><strong>备注加密</strong>：页头"文件状态"一行右侧的开关。关闭时备注是明文，打开后备注逐条加密。这是文件自己的属性，会写进文件里；切换后需要保存才生效。</li>
+      <li><strong>排序</strong>：点"名称"表头，在 原顺序 → 升序 → 降序 之间切换，只影响显示，不改变文件里的顺序。</li>
+      <li><strong>过滤</strong>：页头细线上的放大镜按钮展开输入框。用空白分隔多个词：以 <code>#</code> 开头的是标签（<code>#a#b</code> 表示同时含有以 a、b 开头的标签），其余是名称关键字。全部不区分大小写，必须同时满足。过滤只影响显示。</li>
+      <li><strong>文件备注</strong>：页头细线上的文档图标展开，用来给整个文件写一句说明。</li>
+    </ul>
+
+    <h2>4. 保存到本机</h2>
+    <ul>
+      <li><strong>电脑（Chrome / Edge）：</strong>第一次保存时选择位置并授权，之后"保存"直接覆盖原文件。授权只在手动保存时申请，打开文件时不会弹窗。</li>
+      <li><strong>电脑（其他浏览器）：</strong>保存会下载一个新的 <code>.xgcv</code> 文件。</li>
+      <li><strong>手机：</strong>保存会弹出系统分享面板，选"存储到文件"或你自己的网盘。新文件保存前会先让你输入文件名。手机系统不允许网页直接覆盖原文件，所以每次保存都要在面板里选择位置，同名文件由系统问你是否替换。</li>
+      <li>打开的是旧的 <code>.json</code> 文件时，保存会改存为 <code>.xgcv</code>。</li>
+      <li>有未保存的修改时，页头会显示"未保存"，关闭页面前浏览器也会提醒你。</li>
+    </ul>
+
+    <h2>5. 使用 Google Drive（可选）</h2>
+    <ul>
+      <li>起始页或主界面的<strong>云图标只负责登录和退出</strong>：未登录时是灰色，登录后是彩色。登录一次可以长期有效，不用每小时重新登录。</li>
+      <li><strong>已登录时：</strong>文件夹按钮打开的是 <strong>Drive 文件列表</strong>（文件都在你 Drive 的 <code>gc_vault2</code> 目录里），列表上方有过滤框，按文件名过滤（不含扩展名）；窗口里的"选择本地文件"用来把旧文件导入。</li>
+      <li><strong>已登录时保存，云端一定留一份。</strong>新建的保险箱第一次保存会先问文件名；从本地打开的，本地和云端都会写。页脚的"本地备份"可以让 Drive 保存完再另存一份到本机。</li>
+      <li>云端有同名文件时：如果是同一个保险箱且云端更旧，直接覆盖；否则会让你选择覆盖、改名另存为或取消。</li>
+      <li>在另一台设备上改过同一个文件时，保存会提示"已被其他设备修改"，由你选择重新加载或覆盖。</li>
+      <li>本应用只申请 <code>drive.file</code> 权限，<strong>只能看到它自己创建的文件</strong>，看不到你 Drive 里的其他任何文件。文件在上传前已经加密。</li>
+      <li>退出登录会向 Google 撤销授权；你也可以随时在 Google 账号的"第三方应用与服务"里移除。</li>
+    </ul>
+
+    <h2>6. 闲置超时</h2>
+    <ul>
+      <li>打开了文件、有未保存修改或编辑窗口开着时，如果 300 秒（默认）没有任何操作，保险箱会自动关闭，内存里的内容被清空。时间可以在右上角 ⚙ 设置里改，范围 30–3600 秒。</li>
+      <li>"保存"按钮会显示倒计时。任何鼠标、键盘、触摸或滚动操作都会重新计时。</li>
+      <li>超时时有修改的话：已登录的 Drive 文件会自动写回云端；电脑上只有原文件已授权才会写回，否则直接关闭并提示保存失败；手机会锁屏，只留"保存"和"不保存关闭"。</li>
+    </ul>
+
+    <h2>7. 设置、语言、安装</h2>
+    <ul>
+      <li>主界面右上角 ⚙：切换中文 / English，设置闲置超时秒数，进入隐私政策和服务条款。</li>
+      <li><strong>安装成应用：</strong>iPhone 用 Safari 的"分享 → 添加到主屏幕"；Android / 电脑的 Chrome 用地址栏里的"安装"。新版本发布后，页面会提示刷新。</li>
+    </ul>
+
+    <h2 id="extension" data-anchor="extension">8. 浏览器扩展：快速保存（Chrome / Edge，电脑版）</h2>
+    <p>在任何网页的输入框里输入了用户名、密码、恢复码、API 密钥等，不用复制粘贴，按一个键就能存进保险箱。</p>
+    <ol>
+      <li>在网页的输入框里点一下（或者选中一段文字）。</li>
+      <li>按 <strong>Alt+Shift+V</strong>；或者在输入框上右键选"保存到 GC VAULT"；或者点浏览器工具栏里的扩展图标。快捷键可以在浏览器的 <code>chrome://extensions/shortcuts</code> 里修改。</li>
+      <li>弹出一个小窗，里面就是 GC VAULT。输入主密钥，点文件夹打开已有的保险箱（已登录 Google 时是 Drive 文件列表，可以按文件名过滤），或者点新建图标新建一个。</li>
+      <li>文件打开后，<strong>添加窗口会自动弹出，内容已经填好</strong>：名称是"网站域名 + 输入框的名称"（例如 <code>github.com 密码</code>），值是你刚输入的内容，标签是网站域名。你可以修改，确认后点"确定"。</li>
+      <li>点"保存"。保存成功后，小窗自动关闭。</li>
+    </ol>
+    <ul>
+      <li><strong>一次存多条：</strong>小窗里已经打开了保险箱时，再到别的网页按快捷键，新内容会送进同一个小窗，直接弹出添加窗口。存完几条以后再一起点"保存"。</li>
+      <li><strong>没取到内容：</strong>如果没有点进输入框、也没有选中文字，小窗里的提示条会说明，你仍然可以自己填写。浏览器自带页面和应用商店这类受保护的页面，扩展读不了，会给出提示。</li>
+      <li><strong>嵌在页面里的第三方框架：</strong>输入框如果在嵌入的第三方框架（iframe）里（例如个别支付表单），扩展读不到，小窗里会预填网站域名，值请自己粘贴。</li>
+      <li><strong>隐私与安全：</strong>扩展只在你按快捷键或点菜单的那一刻读取当前页面的输入框，不读取其他网站，也不在后台记录你输入的内容。读到的内容只暂存在浏览器内存里（关闭浏览器就清除，10 分钟后自动过期），交给小窗里的 GC VAULT 后，由 GC VAULT 在你的浏览器里加密保存。扩展不接触主密钥，没有账号，也没有服务器。内容在你点"确定"之前不会加入保险箱，你随时可以在添加窗口里检查和修改。</li>
+      <li><strong>安装：</strong><a href="https://chromewebstore.google.com/detail/gc-vault-quick-save/lbekpaeomkihcjiggejlagcnjiicnibb" target="_blank" rel="noopener">在 Chrome 应用商店安装</a>（Edge 也可以直接从 Chrome 应用商店安装；Edge 加载项上架后这里会补上链接）。只支持电脑版浏览器，手机浏览器不支持扩展。</li>
+    </ul>
+
+    <h2>9. 常见问题</h2>
+    <ul>
+      <li><strong>密钥输错了？</strong>会提示解密失败，文件不会被改动。重新输入正确的密钥即可。</li>
+      <li><strong>忘记主密钥？</strong>无法恢复。请把主密钥另外妥善保管。</li>
+      <li><strong>想在别的软件里还原数据？</strong>用独立解密工具，只需要一条值的密文和主密钥。</li>
+      <li><strong>手机上页面还是旧版本？</strong>把应用从后台划掉重新打开，或在页面顶部点"刷新"。</li>
+    </ul>
+  </section>
+
+  <section class="lang" id="en" lang="en">
+    <h2>Part 1 — About the app</h2>
+
+    <h2>What GC stands for</h2>
+    <p><strong>GC = Guardian &amp; Crypto</strong>: the <strong>Guardian</strong> keeps your private information safe, and <strong>Crypto</strong> is how it does it. GC VAULT is a personal encrypted vault web app for keeping a set of name / value pairs — account names, passwords, recovery codes, card numbers, licence keys.</p>
+
+    <h2>Highlights</h2>
+    <ul>
+      <li><strong>Encryption happens in your own browser.</strong> Your master key and the plaintext of your vault never leave the browser and are never sent to any server.</li>
+      <li><strong>Your data stays with you.</strong> A vault is a single <code>.xgcv</code> file that you can keep on your computer, your phone, or your own Google Drive. The app does not keep any of your files.</li>
+      <li><strong>One master key.</strong> The whole file uses a single key. There are no accounts, no sign-up, no password reset — and no back door.</li>
+      <li><strong>Names and tags are plaintext; values are encrypted.</strong> That lets you search by name and tag without a key; every value (and notes, if you choose to encrypt them) is encrypted individually.</li>
+      <li><strong>Recoverable without this app.</strong> Any single value's ciphertext plus the master key can be decrypted with the standalone tools (<code>/tools/decrypt.html</code> or <code>decrypt.py</code>), whether or not this site still exists.</li>
+      <li><strong>No analytics, no ads, no third-party scripts.</strong> Pages load only this site's own files; even the font is served from the site itself.</li>
+      <li><strong>Installable.</strong> Add it to your home screen / install it on phone or desktop and it opens offline.</li>
+      <li><strong>Browser extension (Chrome / Edge, desktop):</strong> after typing an account name, password or recovery code on any web page, press one shortcut (<code>Alt+Shift+V</code>) to save it into your vault — no copy and paste. See Part 2, section 8.</li>
+    </ul>
+
+    <h2>What it uses</h2>
+    <p>The browser's built-in Web Crypto: PBKDF2-SHA256 (1,000,000 iterations by default) derives a key from your master key, then AES-256-GCM encrypts each value. Every file has its own random salt and every ciphertext its own random nonce. Format details are in the project documentation.</p>
+
+    <h2>What it cannot do</h2>
+    <ul>
+      <li><strong>If you lose the master key the vault cannot be opened and nothing can recover it.</strong> Keep the key somewhere safe, separately.</li>
+      <li>Names, tags and (unless "Encrypt notes" is on) notes are plaintext — do not put secrets there.</li>
+      <li>It is not a team-sharing tool and does not back anything up automatically — back up your <code>.xgcv</code> files regularly.</li>
+    </ul>
+
+    <h2>Part 2 — How to use it</h2>
+
+    <h2>1. Start: open or create</h2>
+    <ul>
+      <li>Type your <strong>master key</strong> in the big box on the start page, then:
+        <ul>
+          <li>click the <strong>folder icon</strong> to open an existing vault file (you can also drag a <code>.xgcv</code> file onto the page);</li>
+          <li>click the <strong>new icon</strong> to create a vault. A new vault cannot use a "weak" key.</li>
+        </ul>
+      </li>
+      <li>Clicking an icon without a key shows a reminder to enter it first.</li>
+      <li>Opening a file only needs a non-empty key; a wrong key reports a decryption failure and changes nothing.</li>
+      <li>Click <strong>GC VAULT</strong> at the top of the main screen to return to the start page. If there are unsaved changes it runs Save first and only leaves once saving has completed.</li>
+    </ul>
+
+    <h2>2. The master key</h2>
+    <ul>
+      <li>The whole file uses one key. While the list has entries the key box is read-only.</li>
+      <li>The strength bar shows weak / moderate / strong. A new vault cannot use a weak key.</li>
+      <li><strong>Changing the key:</strong> once a file is open and the key is verified, a ✎ icon appears in the key box. Enter the old key, the new key and the new key again. The new key cannot be weak or equal to the old one. The change exists only in memory — <strong>it takes effect in the file only after you click Save</strong>.</li>
+    </ul>
+
+    <h2>3. Managing entries</h2>
+    <ul>
+      <li><strong>Add</strong> with the Add button. Each entry has a name, a value, optional tags and an optional note. Names must be unique (case-insensitive).</li>
+      <li>Each row has <strong>copy, edit and delete</strong>. Values are masked by default; turn on "Show values" to reveal them.</li>
+      <li><strong>Tags</strong> look like <code>#bank#daily</code>, separated by # or whitespace, case-insensitive, up to 32 characters each. Typing <code>#</code> and a letter suggests tags already in the file; press Tab to complete. Clicking a tag in the list adds it to the filter.</li>
+      <li><strong>Encrypt notes</strong>: the switch on the right of the file-status line. Off: notes are plaintext. On: each note is encrypted. It is a property of the file and is stored in it; save for the change to take effect.</li>
+      <li><strong>Sorting</strong>: click the "Name" header to cycle original order → ascending → descending. It affects the display only, not the order saved in the file.</li>
+      <li><strong>Filter</strong>: the magnifier on the thin line in the header opens the box. Separate terms with spaces: terms starting with <code>#</code> are tags (<code>#a#b</code> means tags starting with both a and b), the rest are name keywords. All case-insensitive, all must match. Filtering affects the display only.</li>
+      <li><strong>File note</strong>: the document icon on the same line opens a note for the whole file.</li>
+    </ul>
+
+    <h2>4. Saving to this device</h2>
+    <ul>
+      <li><strong>Desktop Chrome / Edge:</strong> the first save asks where to save and for permission; afterwards Save overwrites the original file. Permission is requested only when you save by hand, never when you open a file.</li>
+      <li><strong>Other desktop browsers:</strong> Save downloads a new <code>.xgcv</code> file.</li>
+      <li><strong>Phones:</strong> Save opens the system share sheet — choose "Save to Files" or your cloud drive. A new file asks for a file name first. Phones do not let web pages overwrite the original file, so each save asks you to choose a location, and the system asks about replacing a file of the same name.</li>
+      <li>A legacy <code>.json</code> file is saved as <code>.xgcv</code>.</li>
+      <li>Unsaved changes are flagged in the header, and the browser warns you before you leave the page.</li>
+    </ul>
+
+    <h2>5. Using Google Drive (optional)</h2>
+    <ul>
+      <li>The <strong>cloud icon only signs in and out</strong>: grey when signed out, in colour when signed in. One sign-in lasts a long time — no hourly sign-in.</li>
+      <li><strong>When signed in</strong> the folder button opens the <strong>Drive file list</strong> (files live in the <code>gc_vault2</code> folder of your Drive). A filter box above the list filters by file name (extension excluded); "Choose a local file" imports an older file.</li>
+      <li><strong>When signed in, every save keeps a copy in the cloud.</strong> A new vault asks for a file name the first time; a vault opened from a local file is written both locally and to Drive. The "Local backup" checkbox in the footer saves an extra copy to this device after each Drive save.</li>
+      <li>If Drive already has a file of that name: when it is the same vault and the cloud copy is older it is overwritten directly; otherwise you choose overwrite, save under a new name, or cancel.</li>
+      <li>If another device changed the same file, Save reports "modified on another device" and you choose to reload or overwrite.</li>
+      <li>The app requests only the <code>drive.file</code> permission, so it <strong>can see only the files it created</strong> — nothing else in your Drive. Files are encrypted before upload.</li>
+      <li>Signing out revokes access at Google; you can also remove it any time under third-party apps in your Google Account.</li>
+    </ul>
+
+    <h2>6. Idle timeout</h2>
+    <ul>
+      <li>With a file open, unsaved changes or an editor open, after 300 seconds (default) without activity the vault closes and memory is cleared. Change the time in ⚙ Settings (30–3600 seconds).</li>
+      <li>The Save button shows a countdown; any mouse, keyboard, touch or scroll activity restarts it.</li>
+      <li>If there are changes at timeout: a Drive file signed in is written back to Drive automatically; on desktop the original file is written back only if permission was already granted, otherwise it closes and reports that saving failed; on a phone the screen locks and only "Save" and "Close without saving" remain.</li>
+    </ul>
+
+    <h2>7. Settings, language, installing</h2>
+    <ul>
+      <li>⚙ at the top right of the main screen: switch 中文 / English, set the idle timeout, open the Privacy Policy and Terms of Service.</li>
+      <li><strong>Install as an app:</strong> on iPhone use Safari's Share → Add to Home Screen; on Android or desktop Chrome use the Install button in the address bar. When a new version is released the page offers to reload.</li>
+    </ul>
+
+    <h2 id="extension-en" data-anchor="extension">8. Browser extension: quick save (Chrome / Edge, desktop)</h2>
+    <p>After typing a user name, password, recovery code or API key on any web page, press one key to put it into your vault — no copy and paste.</p>
+    <ol>
+      <li>Click into the field on the web page (or select some text).</li>
+      <li>Press <strong>Alt+Shift+V</strong>; or right-click the field and choose "Save to GC VAULT"; or click the extension icon in the browser toolbar. You can change the shortcut at <code>chrome://extensions/shortcuts</code>.</li>
+      <li>A small window opens with GC VAULT in it. Enter your master key, then click the folder to open an existing vault (when signed in to Google this is the Drive file list, which you can filter by file name) or click the new icon to create one.</li>
+      <li>Once the file is open, <strong>the Add dialog appears already filled in</strong>: the name is "site domain + field name" (for example <code>github.com password</code>), the value is what you just typed, and the tag is the site domain. Edit anything you like, then click OK.</li>
+      <li>Click Save. When saving succeeds the small window closes by itself.</li>
+    </ol>
+    <ul>
+      <li><strong>Several items in one go:</strong> while the small window already has a vault open, pressing the shortcut on another page sends the new content into the same window and opens the Add dialog straight away. Save once after adding as many as you like.</li>
+      <li><strong>Nothing captured:</strong> if you did not click into a field or select any text, the banner in the small window says so and you can still type the value yourself. Protected pages such as browser pages and web stores cannot be read by extensions and give a notice.</li>
+      <li><strong>Embedded third-party frames:</strong> if the field is inside an embedded third-party frame (iframe, for example some payment forms) the extension cannot read it; the small window then pre-fills the site's domain and you paste the value yourself.</li>
+      <li><strong>Privacy and security:</strong> the extension reads the field on the current page only at the moment you press the shortcut or choose the menu; it does not read other sites and does not record what you type in the background. What it reads is kept only in browser memory (cleared when you close the browser, and expires after 10 minutes), then handed to GC VAULT in the small window, which encrypts and saves it in your browser. The extension never touches your master key, has no account and no server. Nothing is added to your vault until you click OK, and you can check and change it in the Add dialog.</li>
+      <li><strong>Installing:</strong> <a href="https://chromewebstore.google.com/detail/gc-vault-quick-save/lbekpaeomkihcjiggejlagcnjiicnibb" target="_blank" rel="noopener">install from the Chrome Web Store</a> (Edge can also install it straight from the Chrome Web Store; an Edge Add-ons link will be added once it is listed). Desktop browsers only; mobile browsers do not support this extension.</li>
+    </ul>
+
+    <h2>9. FAQ</h2>
+    <ul>
+      <li><strong>Typed the wrong key?</strong> You get a decryption failure and the file is untouched. Enter the right key.</li>
+      <li><strong>Forgot the master key?</strong> It cannot be recovered. Keep it safe somewhere separate.</li>
+      <li><strong>Want your data in other software?</strong> Use the standalone decrypt tools — they need only one value's ciphertext and the master key.</li>
+      <li><strong>Still seeing the old version on your phone?</strong> Swipe the app away and reopen it, or tap "Reload" at the top of the page.</li>
+    </ul>
+  </section>
+
+  <footer><a href="/">GC VAULT</a> · <a href="/privacy.html"><span lang="zh-CN">隐私政策</span><span lang="en">Privacy Policy</span></a> · <a href="/terms.html"><span lang="zh-CN">服务条款</span><span lang="en">Terms of Service</span></a></footer>
+</main>
+<script src="/legal.js"></script>
+</body>
+</html>

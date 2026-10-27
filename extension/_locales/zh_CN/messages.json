@@ -1,0 +1,14 @@
+{
+  "extDesc": {
+    "message": "把你刚在任意网页上输入的内容，保存到你的 GC VAULT 保险箱。"
+  },
+  "cmdDesc": {
+    "message": "把当前输入框的内容保存到 GC VAULT"
+  },
+  "actionTitle": {
+    "message": "保存到 GC VAULT"
+  },
+  "menuSave": {
+    "message": "保存到 GC VAULT"
+  }
+}

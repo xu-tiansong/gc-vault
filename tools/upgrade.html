@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>.xgcv 升级工具 / Upgrade Tool</title>
+<style>
+    :root { --primary: #0066cc; --ink: #1d1d1f; --muted: #7a7a7a; --bg: #f5f5f7; --line: #d2d2d7; --bad: #d70015; --ok: #248a3d; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 16px; background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
+    main { max-width: 640px; margin: 0 auto; }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    p.sub { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
+    label { display: block; margin: 12px 0 6px; font-size: 13px; font-weight: 600; }
+    label.chk { display: flex; align-items: center; gap: 8px; font-weight: 400; margin-top: 14px; }
+    input[type=password], input[type=number], input[type=file] { width: 100%; padding: 8px 12px; border: 1px solid var(--line); border-radius: 11px; font-size: 16px; background: #fff; }
+    label.chk input { width: auto; }
+    .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    button { border: 0; border-radius: 9999px; padding: 10px 22px; background: var(--primary); color: #fff; font-size: 16px; cursor: pointer; margin-top: 16px; }
+    button:disabled { opacity: 0.4; }
+    #msg { margin-top: 14px; padding: 10px 14px; border-radius: 14px; background: #fff; border: 1px solid var(--line); white-space: pre-wrap; display: none; }
+    #msg.bad { color: var(--bad); } #msg.ok { color: var(--ok); }
+</style>
+</head>
+<body>
+<main>
+    <h1>.xgcv 升级工具 / Upgrade Tool</h1>
+    <p class="sub">把第一版（gc_vault.html，version 1/2）的 .xgcv 转成新版（version 3）。全程在浏览器本地运行，原文件不会被修改，转换结果以新文件下载。</p>
+
+    <label for="file">旧版 .xgcv 文件 / Old file</label>
+    <input type="file" id="file">
+    <label for="oldPw">旧密钥 / Current password</label>
+    <input type="password" id="oldPw" autocomplete="off" spellcheck="false">
+    <label for="newPw">新密钥（可选，留空则沿用旧密钥）</label>
+    <input type="password" id="newPw" autocomplete="off" spellcheck="false">
+    <label for="iters">迭代次数 / PBKDF2 iterations</label>
+    <input type="number" id="iters" value="1000000" min="1000" max="5000000" step="1000">
+    <div class="hint">越大越安全但打开越慢；默认 100 万次（电脑约 0.5 秒、iPhone 约 0.2 秒），建议在你最慢的设备上不超过 1 秒。</div>
+    <div class="hint">备注是否加密沿用旧文件的设定：旧文件的备注是加密的，新文件的备注也加密；旧文件是明文的，就保持明文。名称和标签始终明文。</div>
+    <button id="go" type="button">升级并下载 / Upgrade &amp; Download</button>
+    <div id="msg"></div>
+</main>
+<script>
+'use strict';
+// ---- 核心（纯函数，无 DOM 依赖，可在 Node 里被测试加载）----
+const VERIFIER_TEXT = 'ZT-VAULT-KEY-CHECK';
+const te = new TextEncoder(), td = new TextDecoder('utf-8', { fatal: true });
+
+const toB64url = bytes => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const fromB64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));   // 旧格式：标准 base64
+const nfc = s => s.normalize('NFC');
+
+async function pbkdf2Key(password, salt, iterations, usage, normalize) {
+    const base = await crypto.subtle.importKey('raw', te.encode(normalize ? nfc(password) : password), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, [usage]);
+}
+
+// 旧格式：base64(salt16 | iv12 | ct)，每个值各自 PBKDF2(旧密码原样 UTF-8，不做 NFC)
+async function decryptOld(b64, password, iterations) {
+    const buf = fromB64(b64);
+    if (buf.length < 28 + 16) throw new Error('bad old token');
+    const key = await pbkdf2Key(password, buf.slice(0, 16), iterations, 'decrypt', false);
+    return td.decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: buf.slice(16, 28) }, key, buf.slice(28)));
+}
+
+const isObj = x => !!x && typeof x === 'object' && !Array.isArray(x);
+
+function parseOld(text) {
+    let d; try { d = JSON.parse(text); } catch { throw new Error('不是有效的 JSON 文件'); }
+    if (!isObj(d) || (d.format !== undefined && d.format !== 'zt-vault') || !Array.isArray(d.items)) throw new Error('不是 zt-vault 文件');
+    if (d.version === 3) throw new Error('这已经是新版（version 3）文件，不需要升级');
+    const version = Number.isInteger(d.version) ? d.version : 1;
+    if (version > 2) throw new Error('未知的文件版本：' + d.version);
+    let iterations = 100000;
+    if (d.kdf !== undefined) {
+        const k = d.kdf;
+        if (!isObj(k) || k.name !== 'PBKDF2' || k.hash !== 'SHA-256' || !Number.isInteger(k.iterations) || k.iterations < 1000 || k.iterations > 10000000) throw new Error('不支持的 KDF 参数');
+        iterations = k.iterations;
+    }
+    const items = d.items.map((it, i) => {
+        if (!isObj(it) || typeof it.name !== 'string' || !it.name.trim() || typeof it.value !== 'string' || !it.value
+            || (it.note !== undefined && typeof it.note !== 'string') || (it.tags !== undefined && (!Array.isArray(it.tags) || it.tags.some(t => typeof t !== 'string'))))
+            throw new Error(`第 ${i + 1} 个条目格式错误`);
+        return { name: it.name, value: it.value, note: it.note || '', tags: it.tags || [] };
+    });
+    if (d.note !== undefined && typeof d.note !== 'string') throw new Error('文件备注格式错误');
+    if (d.notesEncrypted !== undefined && typeof d.notesEncrypted !== 'boolean') throw new Error('notesEncrypted 格式错误');
+    // 旧文件的备注设定：v1 的条目备注总是加密的（文件备注是明文）；v2 看 notesEncrypted（为 true 时条目备注和文件备注都是加密的，读不到按明文）
+    const itemNotesEnc = version < 2 || d.notesEncrypted === true;
+    const fileNoteEnc = version >= 2 && d.notesEncrypted === true;
+    return { version, iterations, items, verifier: typeof d.verifier === 'string' && d.verifier ? d.verifier : null, note: d.note || '', itemNotesEnc, fileNoteEnc };
+}
+
+function dedupTags(tags) {
+    const seen = new Set(), out = [];
+    for (const t of tags.join('#').split(/[#\s]+/)) { if (!t) continue; const k = t.toLowerCase(); if (!seen.has(k)) { seen.add(k); out.push(t); } }
+    return out;
+}
+
+/** 旧文件文本 → 新文件文本。opts: { oldPassword, newPassword?, iterations, now? }。备注是否加密沿用旧文件的设定 */
+async function upgrade(oldText, opts) {
+    const old = parseOld(oldText);
+    const oldPw = opts.oldPassword, newPw = opts.newPassword || oldPw;
+    if (!oldPw) throw new Error('请输入旧密钥');
+    const iterations = opts.iterations;
+    if (!Number.isInteger(iterations) || iterations < 1000 || iterations > 5000000) throw new Error('迭代次数应在 1000 – 5000000 之间');
+
+    // 1. 用旧密钥解开一切；任何一条失败都中止
+    if (old.verifier) {
+        let v = null; try { v = await decryptOld(old.verifier, oldPw, old.iterations); } catch { /* 下面统一报错 */ }
+        if (v !== VERIFIER_TEXT) throw new Error('旧密钥错误');
+    }
+    let fileNote = old.note;
+    if (old.fileNoteEnc && fileNote) {
+        try { fileNote = await decryptOld(fileNote, oldPw, old.iterations); } catch { throw new Error('文件备注无法解密'); }
+    }
+    const plain = [];
+    for (const it of old.items) {
+        let value, note = it.note;
+        try { value = await decryptOld(it.value, oldPw, old.iterations); }
+        catch { throw new Error(`条目「${it.name}」无法用该密钥解密`); }
+        if (old.itemNotesEnc && note) {
+            try { note = await decryptOld(note, oldPw, old.iterations); } catch { throw new Error(`条目「${it.name}」的备注无法解密`); }
+        }
+        plain.push({ name: it.name, value, note, tags: dedupTags(it.tags) });
+    }
+
+    // 2. 用新密钥重新加密：整个文件一个 salt，只做一次 PBKDF2
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const key = await pbkdf2Key(newPw, salt, iterations, 'encrypt', true);
+    const token = async text => {
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, te.encode(text)));
+        return ['zt3', iterations, toB64url(salt), toB64url(iv), toB64url(ct)].join('.');
+    };
+    const enc = old.itemNotesEnc;   // 新文件的备注加密与否，沿用旧文件的设定
+    const noteOut = async t => (enc ? token(t) : t);
+    const items = [];
+    for (const p of plain) {
+        const o = { id: crypto.randomUUID(), name: p.name, value: await token(p.value) };
+        if (p.tags.length) o.tags = p.tags;
+        if (p.note.trim()) o.note = await noteOut(p.note);
+        items.push(o);
+    }
+    const now = opts.now || new Date();
+    const out = {
+        format: 'zt-vault', version: 3, revision: 1, lastModified: now.toISOString(),
+        kdf: { name: 'PBKDF2', hash: 'SHA-256', iterations, salt: toB64url(salt) },
+        verifier: await token(VERIFIER_TEXT),
+        ...(enc ? { notesEncrypted: true } : {}),
+        ...(fileNote.trim() ? { note: await noteOut(fileNote) } : {}),
+        items,
+    };
+    const lower = new Map(); let dups = 0;
+    for (const p of plain) { const k = p.name.trim().toLowerCase(); if (lower.has(k)) dups++; lower.set(k, 1); }
+    return { text: JSON.stringify(out, null, 2), count: items.length, dups, notesEncrypted: enc, oldVersion: old.version };
+}
+
+const API = { upgrade, parseOld };
+
+// ---- 界面 ----
+if (typeof document !== 'undefined') {
+    const $ = id => document.getElementById(id);
+    const msg = (t, cls) => { const m = $('msg'); m.textContent = t; m.className = cls || ''; m.style.display = 'block'; };
+    $('go').addEventListener('click', async () => {
+        const f = $('file').files[0];
+        if (!f) { msg('请先选择旧版 .xgcv 文件', 'bad'); return; }
+        $('go').disabled = true; msg('正在转换，请稍候……');
+        try {
+            const r = await upgrade(await f.text(), {
+                oldPassword: $('oldPw').value, newPassword: $('newPw').value,
+                iterations: Number($('iters').value),
+            });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([r.text], { type: 'application/octet-stream' }));
+            a.download = f.name.replace(/\.(xgcv|json)$/i, '') + '_v3.xgcv';
+            document.body.append(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+            msg(`完成：已转换 ${r.count} 个条目（来源 version ${r.oldVersion}）。备注${r.notesEncrypted ? '已加密' : '未加密'}。` +
+                (r.dups ? `\n注意：有 ${r.dups} 个名称与其他条目仅大小写不同；新版要求名称不重复（不区分大小写），编辑这些条目时需先改名。` : ''), 'ok');
+        } catch (e) { msg(e.message, 'bad'); }
+        finally { $('go').disabled = false; }
+    });
+}
+</script>
+</body>
+</html>
